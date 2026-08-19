@@ -1,0 +1,66 @@
+# Logto (self-hosted identity provider) on Fly.io — public app.
+#
+# Image is pulled directly (no Dockerfile needed — Logto is stateless, all
+# persistence lives in Postgres, which is a separate Fly app: see
+# logto-db/fly.toml). Core listens on 3001, the Admin Console on 3002.
+# Only 3001 is exposed publicly here — see "Admin console access" in the
+# README for why 3002 is deliberately not.
+#
+# See https://fly.io/docs/reference/configuration/
+
+app = 'logto-af'
+primary_region = 'lax'
+
+[build]
+  image = 'svhd/logto:latest'
+
+[env]
+  # Must match the public URL exactly — Logto derives the OIDC issuer and
+  # every redirect URL from this. Starts pointed at the Fly-provided
+  # hostname so the instance can be stood up and verified before
+  # auth.yusufaf.dev DNS exists; flip to the custom domain once
+  # `fly certs add auth.yusufaf.dev` shows Ready (see README).
+  ENDPOINT = 'https://logto-af.fly.dev'
+
+  # Admin Console stays off the public listener (port 3002 is never in
+  # [http_service] / [[services]] below) — reach it with
+  # `fly proxy 3002:3002 -a logto-af` instead. ADMIN_ENDPOINT is the
+  # localhost form to match: the console calls back to itself and needs
+  # this to resolve to wherever you're actually browsing it from.
+  ADMIN_ENDPOINT = 'http://localhost:3002'
+
+  # Always set behind Fly's proxy — without it the OIDC hosted sign-in
+  # pages see requests as http:// and the "secure cookie over insecure
+  # connection" failure mode kicks in.
+  TRUST_PROXY_HEADER = '1'
+
+  # DB_URL and SECRET_VAULT_KEK are secrets (`fly secrets set`), never here —
+  # see README "Deploy" step 3.
+
+[http_service]
+  internal_port = 3001
+  force_https = true
+
+  # Always-on: a cold start on the JWKS endpoint can make a Lambda API
+  # authorizer time out rather than just feel slow (Phase 2/3 of the auth
+  # migration plan). Revisit once JWKS caching is confirmed working there.
+  auto_stop_machines = 'off'
+  min_machines_running = 1
+  auto_start_machines = true
+
+  [http_service.concurrency]
+    type = 'requests'
+    hard_limit = 250
+    soft_limit = 200
+
+  [[http_service.http_checks]]
+    interval = '30s'
+    timeout = '5s'
+    grace_period = '60s'
+    method = 'GET'
+    path = '/oidc/.well-known/openid-configuration'
+
+[[vm]]
+  cpu_kind = 'shared'
+  cpus = 1
+  memory_mb = 1024

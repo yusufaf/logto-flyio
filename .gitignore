@@ -1,0 +1,19 @@
+# Secrets — these belong in `fly secrets`, never in the repo
+.env
+.env.*
+!.env.example
+*.pem
+*.key
+
+# Local working notes / handoff docs
+HANDOFF*.md
+NOTES*.md
+*.local.md
+
+# Fly
+.fly/
+fly.toml.bak
+
+# OS
+.DS_Store
+Thumbs.db

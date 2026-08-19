@@ -1,0 +1,30 @@
+# Logto — PostgreSQL (private, always-on)
+#
+# Self-hosted, unmanaged Postgres as a second Fly app — same pattern as
+# sparkyfitness-flyio/db. Fly Managed Postgres (`fly mpg`) was considered and
+# rejected: its cheapest plan is $38/mo, versus ~$2/mo for a small VM + volume
+# here. No [[services]] block => not exposed to the internet; reachable from
+# the logto-af app over 6PN at `logto-db.internal:5432`.
+app = 'logto-db'   # EXAMPLE — globally-unique on Fly; pick your own if taken
+primary_region = 'lax'
+
+[build]
+  # Logto's own docker-compose.yml pins postgres:17-alpine; Logto requires
+  # PG 14+.
+  image = 'postgres:17-alpine'
+
+[env]
+  # Keep the data dir in a subfolder of the mounted volume (recommended for
+  # the official postgres image so initdb doesn't trip over the mount root).
+  PGDATA = '/var/lib/postgresql/data'
+  # POSTGRES_DB / POSTGRES_USER / POSTGRES_PASSWORD are set via `fly secrets`
+  # (see README) so the password never lands in git.
+
+[[mounts]]
+  source = 'logto_pgdata'
+  destination = '/var/lib/postgresql'
+  initial_size = '1GB'
+
+[[vm]]
+  size = 'shared-cpu-1x'
+  memory = '256mb'   # bump to 512mb if you see OOM during Logto's migrations
