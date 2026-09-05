@@ -1,0 +1,54 @@
+# Tailscale subnet-of-one: proxies the Logto Admin Console (logto-af:3002)
+# onto the tailnet as HTTPS, so it's reachable from any device with
+# Tailscale installed — no more `fly proxy` per session. See "Admin console
+# access" in the root README for the full picture and the break-glass path.
+#
+# No [[services]] / [http_service] below — same as logto-db/fly.toml, this
+# is what keeps the app off the public internet entirely. `fly ips list`
+# should always come back empty for this app.
+
+app = 'logto-ts-router'   # EXAMPLE — globally-unique on Fly; pick your own if taken
+primary_region = 'lax'    # same region as logto-af/logto-db — keeps the 6PN hop local
+
+[build]
+  dockerfile = 'Dockerfile'
+
+[env]
+  # Fixed hostname so the tailnet URL (https://logto-console.<tailnet>.ts.net)
+  # never changes — ADMIN_ENDPOINT in the root fly.toml is pinned to it.
+  TS_HOSTNAME = 'logto-console'
+
+  # Must persist across restarts/redeploys (see [[mounts]] below), or every
+  # restart re-registers as a brand-new tailnet device: loses the stable
+  # hostname above, loses the issued TLS cert (risking Let's Encrypt rate
+  # limits), and orphans the old device in the admin console.
+  TS_STATE_DIR = '/var/lib/tailscale'
+
+  # Programmatic Tailscale Serve config — see serve.json, COPYed into the
+  # image at /config/serve.json (Dockerfile). containerboot wants the file
+  # path itself here, not its directory — Tailscale's directory-vs-file
+  # guidance is about live-editing a bind-mounted config at runtime, which
+  # doesn't apply: serve.json is baked into the image and never changes
+  # without a rebuild.
+  TS_SERVE_CONFIG = '/config/serve.json'
+
+  # Kernel networking (TS_USERSPACE=false) needs /dev/net/tun + NET_ADMIN and
+  # is reported unreliable on Fly Machines; it also has a known runaway-CPU
+  # bug specifically when paired with Serve. Userspace (default, set
+  # explicitly here) is the documented-working path for this setup.
+  TS_USERSPACE = 'true'
+
+  # Do NOT set to true: accepting tailnet DNS would replace Fly's resolver,
+  # breaking the *.internal lookup start.sh depends on to reach logto-af.
+  TS_ACCEPT_DNS = 'false'
+
+  # TS_AUTHKEY is a secret (`fly secrets set`), never here.
+
+[[mounts]]
+  source = 'ts_state'
+  destination = '/var/lib/tailscale'
+  initial_size = '1GB'
+
+[[vm]]
+  size = 'shared-cpu-1x'
+  memory = '256mb'
