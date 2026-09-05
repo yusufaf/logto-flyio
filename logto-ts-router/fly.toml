@@ -24,9 +24,12 @@ primary_region = 'lax'    # same region as logto-af/logto-db — keeps the 6PN h
   # limits), and orphans the old device in the admin console.
   TS_STATE_DIR = '/var/lib/tailscale'
 
-  # Programmatic Tailscale Serve config — see serve.json. Must be mounted as
-  # a directory, not a bare file (Tailscale's change-detection watches the
-  # directory), hence /config below rather than /config/serve.json directly.
+  # Programmatic Tailscale Serve config — see serve.json, COPYed into the
+  # image at /config/serve.json (Dockerfile). containerboot wants the file
+  # path itself here, not its directory — Tailscale's directory-vs-file
+  # guidance is about live-editing a bind-mounted config at runtime, which
+  # doesn't apply: serve.json is baked into the image and never changes
+  # without a rebuild.
   TS_SERVE_CONFIG = '/config/serve.json'
 
   # Kernel networking (TS_USERSPACE=false) needs /dev/net/tun + NET_ADMIN and
