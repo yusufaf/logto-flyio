@@ -16,11 +16,9 @@ primary_region = 'lax'
 
 [env]
   # Must match the public URL exactly — Logto derives the OIDC issuer and
-  # every redirect URL from this. Starts pointed at the Fly-provided
-  # hostname so the instance can be stood up and verified before
-  # auth.yusufaf.dev DNS exists; flip to the custom domain once
-  # `fly certs add auth.yusufaf.dev` shows Ready (see README).
-  ENDPOINT = 'https://logto-af.fly.dev'
+  # every redirect URL from this. Cut over to the custom domain now that
+  # `fly certs show auth.yusufaf.dev --app logto-af` reports Issued.
+  ENDPOINT = 'https://auth.yusufaf.dev'
 
   # Admin Console stays off the public listener (port 3002 is never in
   # [http_service] / [[services]] below) — reached instead over Tailscale via
