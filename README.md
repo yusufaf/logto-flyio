@@ -188,8 +188,8 @@ Revert by redeploying with the committed `fly.toml`.
 ## Verify
 
 ```bash
-curl -s https://logto-af.fly.dev/oidc/.well-known/openid-configuration | jq .issuer
-# -> "https://logto-af.fly.dev/oidc"  (or https://auth.yusufaf.dev/oidc post-cutover)
+curl -s https://auth.yusufaf.dev/oidc/.well-known/openid-configuration | jq .issuer
+# -> "https://auth.yusufaf.dev/oidc"  (or https://logto-af.fly.dev/oidc pre-cutover)
 
 fly ips list --app logto-ts-router   # expect empty — no public IPs
 curl -sI https://logto-console.<your-tailnet-id>.ts.net   # from a tailnet device: 200, valid cert
