@@ -21,22 +21,18 @@ primary_region = 'lax'
   ENDPOINT = 'https://auth.yusufaf.dev'
 
   # Admin Console stays off the public listener (port 3002 is never in
-  # [http_service] / [[services]] below) — reached instead over Tailscale via
-  # the logto-ts-router app (see "Admin console access" in the README).
+  # [http_service] / [[services]] below) — reach it with
+  # `fly proxy 3002:3002 -a logto-af` (see "Admin console access" in the
+  # README, including an optional stable-tailnet-URL upgrade via Tailscale).
   #
-  # ADMIN_ENDPOINT is set via `fly secrets set`, NOT here — this repo is
-  # public, and its value is https://logto-console.<opaque-tailnet-id>.ts.net,
-  # which names a private Tailscale tailnet. Treat it like DB_URL /
-  # SECRET_VAULT_KEK below: real value never committed. Must be this exact
-  # HTTPS origin once set: Logto only allows CORS from ADMIN_ENDPOINT's
-  # origin, and the Admin Console's Web Crypto usage refuses to run over
-  # plain HTTP on anything but localhost — a bare 6PN address would not work
-  # here even privately.
-  #
-  # Break-glass: if Tailscale/logto-ts-router is down and console access is
-  # needed, `fly secrets set ADMIN_ENDPOINT=http://localhost:3002` (redeploys)
-  # then `fly proxy 3002:3002 -a logto-af`; revert by setting ADMIN_ENDPOINT
-  # back to your tailnet URL (`fly secrets set`, same as above).
+  # ADMIN_ENDPOINT is set via `fly secrets set`, NOT here (see README "App
+  # secrets") — this repo is public, and even the default localhost value is
+  # kept out of git so the pattern matches DB_URL / SECRET_VAULT_KEK below;
+  # if you take the Tailscale upgrade its value becomes a private tailnet
+  # hostname instead, which really would need to stay uncommitted. Must be
+  # exactly the origin the console is actually browsed from — Logto only
+  # allows CORS from ADMIN_ENDPOINT's origin, and the Admin Console's Web
+  # Crypto usage refuses to run over plain HTTP on anything but localhost.
 
   # Always set behind Fly's proxy — without it the OIDC hosted sign-in
   # pages see requests as http:// and the "secure cookie over insecure
